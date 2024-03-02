@@ -48,7 +48,6 @@ def end(map,total_frame):
     result = metadata.to_json('./characters/metadata.json', orient="records")
 
 def write_json(dict):
-    
     # Serializing json
     json_object = json.dumps(dict, indent=4)
     

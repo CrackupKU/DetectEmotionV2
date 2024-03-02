@@ -142,10 +142,9 @@ def draw(image, detections,map):
             if len(text) > 50:
                 text = text[:50] + ' ...'
         label = str(box['id']) + box['emotion'][0]
-        # print(box['id'], box['predict'], box['emotion'])
         for k in map.values():
             id = k.split("_")[1]
-            if box['id'] == id:
+            if int(box['id']) == int(id):
                 write(box['id'], box['f'], box['emotion'][0])
                 break
         width = box['width']

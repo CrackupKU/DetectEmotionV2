@@ -4,3 +4,10 @@ venv/
 output.mp4
 streams.txt
 *.mp4
+characters/
+characters_bench1/
+deprecated/
+env/
+marchs/
+smile_characters/
+track_video.py
