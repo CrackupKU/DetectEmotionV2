@@ -12,9 +12,13 @@ import argparse
 
 parser = argparse.ArgumentParser('My program')
 parser.add_argument('-p', '--path',required=True,
-    help="input file with two matrices", metavar="FILE")
+    help="file path of video", metavar="FILE")
+parser.add_argument('-n', '--name',required=True,
+    help="name of folder",)
+
 args = parser.parse_args()
 FILE_PATH = args.path
+FILE_NAME = args.name
 
 
 
@@ -70,9 +74,9 @@ try:
                             x1,y1,x2,y2 = int(detection['x']), int(detection['y']), int(detection['x']) + int(detection['width']), int(detection['y'])+detection['height']
                             tensor_to_pil = transforms.ToPILImage()(detected_frame[y1:y2, x1:x2,::-1])
                             file_path = f"ID_{str(detection['id'])}_img.jpg"  # You can use different image formats like .png, .jpeg, etc.
-                            Path("./characters/img/").mkdir(parents=True,exist_ok=True)
+                            Path(f"./characters/{FILE_NAME}/img/").mkdir(parents=True,exist_ok=True)
                             try:
-                                tensor_to_pil.save("./characters/img/"+file_path)
+                                tensor_to_pil.save(f"./characters/{FILE_NAME}/img/"+file_path)
                             except:
                                 print(file_path, x1,y1,x2,y2,)
                             map[str(detection['id'])] = f"ID_{str(detection['id'])}_img.jpg"
@@ -92,5 +96,5 @@ video.release()
 output.release()
 yolov7.unload()
 
-end(map,f)
-write_json(map)
+end(map,f,f'./characters/{FILE_NAME}/metadata.json')
+write_json(map,f"./characters/{FILE_NAME}/img_map.json")
