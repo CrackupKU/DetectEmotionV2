@@ -1,0 +1,33 @@
+classes:
+  - name: anger
+    color: '#00ffc3'
+  - name: contempt
+    color: '#00ffc3'
+  - name: disgust
+    color: '#00ffc3'
+  - name: fear
+    color: '#00ffc3'
+  - name: happy
+    color: '#00ffc3'
+  - name: neutral
+    color: '#00ffc3'
+  - name: sad
+    color: '#00ffc3'
+  - name: surprise
+    color: '#00ffc3'
+  - name: anger
+    color: '#00ffc3'
+  - name: contempt
+    color: '#00ffc3'
+  - name: disgust
+    color: '#00ffc3'
+  - name: fear
+    color: '#00ffc3'
+  - name: happy
+    color: '#00ffc3'
+  - name: neutral
+    color: '#00ffc3'
+  - name: sad
+    color: '#00ffc3'
+  - name: surprise
+    color: '#00ffc3'

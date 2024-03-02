@@ -3,6 +3,7 @@ import torchvision
 import torch
 import math
 import time
+import logging
 
 
 def make_divisible(x, divisor):
@@ -133,3 +134,78 @@ def crop(image, detection):
     width = detection['width']
     height = detection['height']
     return image[y:y+height, x:x+width]
+
+def non_max_suppression_export(prediction, conf_thres=0.25, iou_thres=0.45, classes=None, agnostic=False, multi_label=False,
+                        kpt_label=5, nc=None, labels=()):
+    """Runs Non-Maximum Suppression (NMS) on inference results
+
+    Returns:
+         list of detections, on (n,6) tensor per image [xyxy, conf, cls]
+    """
+    if nc is None:
+        nc = prediction.shape[2] - 5  if not kpt_label else prediction.shape[2] - 5 - kpt_label * 3 # number of classes
+
+    min_wh, max_wh = 2, 4096  # (pixels) minimum and maximum box width and height
+    xc = prediction[..., 4] > conf_thres  # candidates
+    output = [torch.zeros((0, kpt_label*3+6), device=prediction.device)] * prediction.shape[0]
+    for xi, x in enumerate(prediction):  # image index, image inference
+        x = x[xc[xi]]  # confidence
+        # Compute conf
+        cx, cy, w, h = x[:,0:1], x[:,1:2], x[:,2:3], x[:,3:4]
+        obj_conf = x[:, 4:5]
+        cls_conf = x[:, 5:5+nc]
+        kpts = x[:, 6:]
+        cls_conf = obj_conf * cls_conf  # conf = obj_conf * cls_conf
+        # Box (center x, center y, width, height) to (x1, y1, x2, y2)
+        box = xywh2xyxy_export(cx, cy, w, h)
+        conf, j = cls_conf.max(1, keepdim=True)
+        x = torch.cat((box, conf, j.float(), kpts), 1)[conf.view(-1) > conf_thres]
+        c = x[:, 5:6] * (0 if agnostic else max_wh)  # classes
+        boxes, scores = x[:, :4] +c , x[:, 4]  # boxes (offset by class), scores
+        i = torchvision.ops.nms(boxes, scores, iou_thres)  # NMS
+        output[xi] = x[i]
+    return output
+
+def increment_path(path, exist_ok=False, sep='', mkdir=False):
+    # Increment file or directory path, i.e. runs/exp --> runs/exp{sep}2, runs/exp{sep}3, ... etc.
+    path = Path(path)  # os-agnostic
+    if path.exists() and not exist_ok:
+        suffix = path.suffix
+        path = path.with_suffix('')
+        dirs = glob.glob(f"{path}{sep}*")  # similar paths
+        matches = [re.search(rf"%s{sep}(\d+)" % path.stem, d) for d in dirs]
+        i = [int(m.groups()[0]) for m in matches if m]  # indices
+        n = max(i) + 1 if i else 2  # increment number
+        path = Path(f"{path}{sep}{n}{suffix}")  # update path
+    dir = path if path.suffix == '' else path.parent  # directory
+    if not dir.exists() and mkdir:
+        dir.mkdir(parents=True, exist_ok=True)  # make directory
+    return path
+
+def save_one_box(xyxy, im, file='image.jpg', gain=1.02, pad=10, square=False, BGR=False):
+    # Save an image crop as {file} with crop size multiplied by {gain} and padded by {pad} pixels
+    xyxy = torch.tensor(xyxy).view(-1, 4)
+    b = xyxy2xywh(xyxy)  # boxes
+    if square:
+        b[:, 2:] = b[:, 2:].max(1)[0].unsqueeze(1)  # attempt rectangle to square
+    b[:, 2:] = b[:, 2:] * gain + pad  # box wh * gain + pad
+    xyxy = xywh2xyxy(b).long()
+    clip_coords(xyxy, im.shape)
+    crop = im[int(xyxy[0, 1]):int(xyxy[0, 3]), int(xyxy[0, 0]):int(xyxy[0, 2])]
+    cv2.imwrite(str(increment_path(file, mkdir=True).with_suffix('.jpg')), crop if BGR else crop[..., ::-1])
+
+def check_file(file):
+    # Search for file if not found
+    if Path(file).is_file() or file == '':
+        return file
+    else:
+        files = glob.glob('./**/' + file, recursive=True)  # find file
+        assert len(files), f'File Not Found: {file}'  # assert file was found
+        assert len(files) == 1, f"Multiple files match '{file}', specify exact path: {files}"  # assert unique
+        return files[0]  # return file
+
+def set_logging(rank=-1, verbose=True):
+    logging.basicConfig(
+        format="%(message)s",
+        level=logging.INFO if (verbose and rank in [-1, 0]) else logging.WARN)
+

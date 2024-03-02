@@ -9,6 +9,8 @@ from byte_tracker import BYTETracker
 import numpy as np
 import torch
 import yaml
+from  emotion import detect_emotion
+
 
 
 class YOLOv7:
@@ -25,7 +27,8 @@ class YOLOv7:
     def load(self, weights_path, classes, ocr_weights=None, device='cpu'):
         with torch.no_grad():
             self.device = select_device(device)
-            self.model = attempt_load(weights_path, device=self.device)
+            self.model = attempt_load(weights_path)
+            #  device=self.device
             
             if device != 'cpu':
                 self.model.half()
@@ -67,23 +70,32 @@ class YOLOv7:
 
         return im0, img
 
-    def detect(self, img, track=False):
+    def detect(self, img,f, track=False):
         with torch.no_grad():
             im0, img = self.__parse_image(img)
             pred = self.model(img)[0]
             pred = non_max_suppression(pred, self.settings['conf_thres'], self.settings['iou_thres'])
             raw_detection = np.empty((0,6), float)
 
+
+
             for det in pred:
                 if len(det) > 0:
+                    images = []
                     det[:, :4] = scale_coords(img.shape[2:], det[:, :4], im0.shape).round()
                     for *xyxy, conf, cls in reversed(det):
                         raw_detection = np.concatenate((raw_detection, [[int(xyxy[0]), int(xyxy[1]), int(xyxy[2]), int(xyxy[3]), round(float(conf), 2), int(cls)]]))
+                        x1, y1, x2, y2 = xyxy[0], xyxy[1], xyxy[2], xyxy[3]
+                        images.append(im0.astype(np.uint8)[int(y1):int(y2), int(x1): int(x2)])
+                    emotions, predict= detect_emotion(images,True)
+                else:
+                    emotions = "Not found"
+                    predict = []
 
             if track:
                 raw_detection = self.tracker.update(raw_detection)
             
-            detections = Detections(raw_detection, self.classes, tracking=track).to_dict()
+            detections = Detections(raw_detection, self.classes, emotions, predict,f, tracking=track).to_dict()
 
             if len(self.settings['ocr_classes']) > 0 and self.text_recognizer is not None:
                 for detection in detections:
@@ -96,4 +108,6 @@ class YOLOv7:
                             pass
                         detection['text'] = text
             
-            return detections
+
+
+            return detections, predict

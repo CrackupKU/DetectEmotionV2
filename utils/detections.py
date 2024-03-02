@@ -3,6 +3,9 @@ from PIL import ImageColor
 import numpy as np
 import json
 import cv2
+from metadata import write
+
+colors = ((0,52,255),(121,3,195),(176,34,118),(87,217,255),(69,199,79),(233,219,155),(203,139,77),(214,246,255))
 
 
 class Point:
@@ -18,7 +21,7 @@ class Point:
 
 
 class Box:
-    def __init__(self, class_name, confidence, raw_corner_points, color, track_id=None):
+    def __init__(self, class_name, confidence, raw_corner_points, color,emotion,predict,f, track_id=None):
         self.class_name = class_name
         self.confidence = confidence
         self.raw_corner_points = raw_corner_points
@@ -28,6 +31,9 @@ class Box:
         self.height = self.bottom_right_point.y - self.top_left_point.y
         self.color = color
         self.track_id = track_id
+        self.emotion = emotion
+        self.predict = predict
+        self.f = f
 
     def to_dict(self):
         box = OrderedDict([
@@ -37,7 +43,10 @@ class Box:
             ('y', self.top_left_point.y),
             ('width', self.width),
             ('height', self.height),
-            ('color', self.color)
+            ('color', self.color),
+            ('emotion', self.emotion),
+            ('predict', self.predict),
+            ('f', self.f)
         ])
         if self.track_id is not None:
             box['id'] = self.track_id
@@ -45,7 +54,7 @@ class Box:
 
 
 class Detections:
-    def __init__(self, raw_detection, classes, tracking=False):
+    def __init__(self, raw_detection, classes,emotions, predict,f, tracking=False):
         self.__raw_detection = raw_detection
         self.__classes = classes
         self.__boxes = []
@@ -57,10 +66,14 @@ class Detections:
         self.__tracking_index = 4
         self.__class_index = 5 if tracking else 5
         self.__confidence_index = 6 if tracking else 4
+        self.__emotions = emotions
+        self.__predict = predict
+        self.__f = f
         self.__extract_boxes()
+  
 
     def __extract_boxes(self):
-         for raw_box in self.__raw_detection:
+         for i,raw_box in enumerate(self.__raw_detection):
             track_id = None
             if self.__tracking:
                 track_id = int(raw_box[self.__tracking_index])
@@ -70,8 +83,10 @@ class Detections:
             dataset_class = self.__classes[class_id]
             class_name = dataset_class['name']
             class_color = dataset_class['color']
-            box = Box(class_name, confidence, raw_corner_points, class_color, track_id=track_id)
+            box = Box(class_name, confidence, raw_corner_points, class_color, self.__emotions[-1-i],self.__predict[-1-i],self.__f, track_id=track_id)
             self.__boxes.append(box)
+
+
         
     def get_boxes(self):
         return self.__boxes
@@ -115,7 +130,8 @@ def plot_box(image, top_left_point, bottom_right_point, width, height, label, co
     cv2.putText(image, label, (x, y), font_face, font_scale, [0, 0, 0], thickness=1, lineType=cv2.LINE_AA)
     return image
 
-def draw(image, detections):
+
+def draw(image, detections,map):
     image_copy = image.copy()
     for box in detections:
         class_name = box['class']
@@ -125,10 +141,16 @@ def draw(image, detections):
             text = box['text']
             if len(text) > 50:
                 text = text[:50] + ' ...'
-        label = (str(box['id']) + '. ' if 'id' in box else '') + class_name + ' ' + str(int(conf*100)) + '%' + ((' | ' + text) if ('text' in box and len(box['text']) > 0 and not box['text'].isspace()) else '')
+        label = str(box['id']) + box['emotion'][0]
+        # print(box['id'], box['predict'], box['emotion'])
+        for k in map.values():
+            id = k.split("_")[1]
+            if box['id'] == id:
+                write(box['id'], box['f'], box['emotion'][0])
+                break
         width = box['width']
         height = box['height']
-        color = box['color']
+        color = colors[box['emotion'][1]]
 
         if isinstance(color, str):
             color = ImageColor.getrgb(color)

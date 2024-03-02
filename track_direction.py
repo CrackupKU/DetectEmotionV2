@@ -3,11 +3,20 @@ from utils.detections import draw
 from tqdm import tqdm
 import numpy as np
 import cv2
+from  emotion import init
+from torchvision import transforms
+import pandas as pd
+from metadata import end, write_json
+import sys
+from pathlib import Path
+
+
 
 yolov7 = YOLOv7()
-yolov7.load('coco.weights', classes='coco.yaml', device='cpu') # use 'gpu' for CUDA GPU inference
-
-video = cv2.VideoCapture('video.mp4')
+yolov7.load('weights/yolov7-tiny.pt', classes='person.yaml') # use 'gpu' for CUDA GPU inference
+device='cpu'
+init(device)
+video = cv2.VideoCapture('angry.mp4')
 width  = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
 height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
 fps = int(video.get(cv2.CAP_PROP_FPS))
@@ -21,15 +30,22 @@ if video.isOpened() == False:
 print('[+] tracking video...\n')
 pbar = tqdm(total=frames_count, unit=' frames', dynamic_ncols=True, position=0, leave=True)
 lines = {}
-arrow_lines = []
-arrow_line_length = 50
+
+counter = []
+metadata = pd.DataFrame(columns=['character', 'frame', "emotion", "confident"])
+f = 0
+map = {}
 
 try:
     while video.isOpened():
+        f+=1
         ret, frame = video.read()
+                # Convert the tensor to a PIL image
+
         if ret == True:
-            detections = yolov7.detect(frame, track=True)
+            detections, emotions= yolov7.detect(frame,f, track=True)
             detected_frame = frame
+                
             
             for detection in detections:
                 color = (np.random.randint(0,255), np.random.randint(0,255), np.random.randint(0,255))
@@ -45,24 +61,23 @@ try:
                     
                     lines[detection_id]['points'].append(np.array([detection['x'] + detection['width']/2, detection['y'] + detection['height']/2], np.int32))
                     points = lines[detection_id]['points']
+                    #crop
+                    if int(detection['id']) not in counter:
+                        if 'x' in detection and 'width' in detection and int(detection['width'])>= 80 and int(detection['height'])>= 80:
+                            counter.append(int(detection['id']))
+                            x1,y1,x2,y2 = int(detection['x']), int(detection['y']), int(detection['x']) + int(detection['width']), int(detection['y'])+detection['height']
+                            tensor_to_pil = transforms.ToPILImage()(detected_frame[y1:y2, x1:x2,::-1])
+                            file_path = f"ID_{str(detection['id'])}_img.jpg"  # You can use different image formats like .png, .jpeg, etc.
+                            Path("./characters/img").mkdir(parents=True,exist_ok=True)
+                            try:
+                                tensor_to_pil.save("./characters/img/"+file_path)
+                            except:
+                                print(file_path, x1,y1,x2,y2,)
+                            map[str(detection['id'])] = f"ID_{str(detection['id'])}_img.jpg"
 
-                    if len(points) >= 2:
-                        arrow_lines = lines[detection_id]['arrows']
-                        if len(arrow_lines) > 0:
-                            distance = np.linalg.norm(points[-1] - arrow_lines[-1]['end'])
-                            if distance >= arrow_line_length:
-                                start = np.rint(arrow_lines[-1]['end'] - ((arrow_lines[-1]['end'] - points[-1])/distance)*10).astype(int)
-                                arrow_lines.append({'start':start, 'end':points[-1]})
-                        else:
-                            distance = 0
-                            arrow_lines.append({'start':points[-2], 'end':points[-1]})
-            
-            for line in lines.values():
-                arrow_lines = line['arrows']
-                for arrow_line in arrow_lines:
-                    detected_frame = cv2.arrowedLine(detected_frame, arrow_line['start'], arrow_line['end'], line['color'], 2, line_type=cv2.LINE_AA)
 
-            detected_frame = draw(frame, detections)
+                          
+            detected_frame = draw(frame, detections,map)
             output.write(detected_frame)
             pbar.update(1)
         else:
@@ -74,3 +89,6 @@ pbar.close()
 video.release()
 output.release()
 yolov7.unload()
+
+end(map,f)
+write_json(map)
