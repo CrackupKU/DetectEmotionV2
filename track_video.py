@@ -22,7 +22,7 @@ FILE_NAME = args.name
 
 
 
-IMAGE_RATIO_THRESHOLD = 0.02 # 02%
+IMAGE_RATIO_THRESHOLD = 0.01 # 02%
 
 yolov7 = YOLOv7()
 yolov7.load('weights/yolov7-tiny.pt', classes='person.yaml') # use 'gpu' for CUDA GPU inference

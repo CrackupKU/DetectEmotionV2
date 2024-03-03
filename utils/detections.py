@@ -3,7 +3,7 @@ from PIL import ImageColor
 import numpy as np
 import json
 import cv2
-from metadata import write
+from metadata import write,write2
 
 colors = ((0,52,255),(121,3,195),(176,34,118),(87,217,255),(69,199,79),(233,219,155),(203,139,77),(214,246,255))
 
@@ -83,7 +83,15 @@ class Detections:
             dataset_class = self.__classes[class_id]
             class_name = dataset_class['name']
             class_color = dataset_class['color']
-            box = Box(class_name, confidence, raw_corner_points, class_color, self.__emotions[-1-i],self.__predict[-1-i],self.__f, track_id=track_id)
+            emo_val = self.__emotions[-1-i][0].split("(")[1].split("%")[0]
+            choose = self.__predict
+            if not isinstance(self.__predict[0], np.floating):
+                for p in self.__predict:
+                    for v in p:
+                        if f"{v*100:.1f}" == emo_val:
+                            choose = p
+                            break
+            box = Box(class_name, confidence, raw_corner_points, class_color, self.__emotions[-1-i],choose,self.__f, track_id=track_id)
             self.__boxes.append(box)
 
 
@@ -145,7 +153,8 @@ def draw(image, detections,map):
         for k in map.values():
             id = k.split("_")[1]
             if int(box['id']) == int(id):
-                write(box['id'], box['f'], box['emotion'][0])
+                # write(box['id'], box['f'], box['emotion'][0])
+                write2(box['id'], box['f'], box['predict'])
                 break
         width = box['width']
         height = box['height']

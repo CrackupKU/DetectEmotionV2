@@ -25,6 +25,21 @@ def write(id,f, emotions):
     global metadata
     metadata = metadata.append(_metadata,ignore_index=True)
 
+def write2(id,f, predict):
+    _metadata = {
+        "character": id, 'frame': f,
+                                "anger": predict[0],
+                                "contempt": predict[1],
+                                "disgust": predict[2],
+                                "fear": predict[3],
+                                "happy": predict[4],
+                                "neutral": predict[5],
+                                "sad": predict[6],
+                                "surprise": predict[7],
+    }
+    global metadata
+    metadata = metadata.append(_metadata,ignore_index=True)
+
 def end(map,total_frame,file_path):
     global metadata
     # for i in range(total_frame):
