@@ -105,7 +105,7 @@ pydantic-core==2.16.3
 PyJWT==2.8.0
 PyMuPDF==1.20.2
 pyparsing==3.0.9
-Pyrebase==3.0.27
+Pyrebase
 python-dateutil==2.8.2
 python-decouple==3.8
 python-docx==0.8.11
