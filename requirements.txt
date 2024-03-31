@@ -116,7 +116,7 @@ PyYAML==6.0
 rapidfuzz==2.13.6
 rarfile==4.1
 regex==2022.10.31
-requests==2.11.1
+requests>=2.11.1
 requests-toolbelt==0.7.0
 rsa==4.9
 scikit-image==0.19.3
