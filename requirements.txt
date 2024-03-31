@@ -4,7 +4,7 @@ appdirs==1.4.4
 astor==0.8.1
 attrdict==2.0.1
 Babel==2.11.0
-bce-python-sdk==0.8.74
+bce-python-sdk==0.9.4
 beautifulsoup4==4.11.1
 black==21.7b0
 blinker==1.7.0
