@@ -6,7 +6,7 @@ import cv2
 from  emotion import init
 from torchvision import transforms
 import pandas as pd
-from metadata import end, write_json
+from metadata import end, write_json, write_emotion
 from pathlib import Path
 import argparse
 
@@ -22,7 +22,7 @@ FILE_NAME = args.name
 
 
 
-IMAGE_RATIO_THRESHOLD = 0.01 # 02%
+IMAGE_RATIO_THRESHOLD = 0.01 # 01%
 
 yolov7 = YOLOv7()
 yolov7.load('weights/yolov7-tiny.pt', classes='person.yaml') # use 'gpu' for CUDA GPU inference
@@ -98,3 +98,4 @@ yolov7.unload()
 
 end(map,f,f'./characters/{FILE_NAME}/metadata.json')
 write_json(map,f"./characters/{FILE_NAME}/img_map.json")
+write_emotion(f'./characters/{FILE_NAME}/emotion.json')

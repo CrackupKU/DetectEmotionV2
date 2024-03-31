@@ -83,15 +83,20 @@ class Detections:
             dataset_class = self.__classes[class_id]
             class_name = dataset_class['name']
             class_color = dataset_class['color']
-            emo_val = self.__emotions[-1-i][0].split("(")[1].split("%")[0]
+            # emo_val = self.__emotions[-1-i][0].split("(")[1].split("%")[0]
+            # choose = self.__predict
+            # if not isinstance(self.__predict[0], np.floating):
+            #     for p in self.__predict:
+            #         for v in p:
+            #             if f"{v*100:.1f}" == emo_val:
+            #                 choose = p
+            #                 break
             choose = self.__predict
-            if not isinstance(self.__predict[0], np.floating):
-                for p in self.__predict:
-                    for v in p:
-                        if f"{v*100:.1f}" == emo_val:
-                            choose = p
-                            break
-            box = Box(class_name, confidence, raw_corner_points, class_color, self.__emotions[-1-i],choose,self.__f, track_id=track_id)
+            if len(self.__emotions) >1:
+                choose = choose[i]
+            box = Box(class_name, confidence, raw_corner_points, class_color, self.__emotions[i],choose,self.__f, track_id=track_id)
+
+            # box = Box(class_name, confidence, raw_corner_points, class_color, self.__emotions[-1-i],choose,self.__f, track_id=track_id)
             self.__boxes.append(box)
 
 

@@ -1,6 +1,7 @@
 import pandas as pd
 import json
 
+
 metadata = pd.DataFrame(columns=['character', 'frame', "anger","contempt","disgust","fear","happy","neutral","sad","surprise"])
 
 
@@ -61,6 +62,13 @@ def end(map,total_frame,file_path):
     #             metadata = metadata.append(_metadata,ignore_index=True)
 
     result = metadata.to_json(file_path, orient="records")
+
+def write_emotion(file_path):
+    global metadata
+    max_sum_column = metadata[['anger','disgust','fear','happy','sad','surprise']].sum().idxmax()
+    json_object = json.dumps({"emotion": max_sum_column}, indent=4)
+    with open(file_path, "w") as outfile:
+        outfile.write(json_object)
 
 def write_json(dict, file_path):
     # Serializing json
